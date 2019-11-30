@@ -1,0 +1,28 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "sync to board",
+            "type": "shell",
+            "command": "rshell -p /dev/ttyUSB0 rsync src /pyboard"
+        },
+        {
+            "label": "open rshell repl",
+            "type": "shell",
+            "command": "rshell -p /dev/ttyUSB0 -e nano repl"
+        },
+        {
+            "label": "open rshell",
+            "type": "shell",
+            "command": "rshell -p /dev/ttyUSB0 -e nano"
+        },
+        {
+            "label": "sync + run",
+            "type": "shell",
+            "command": "rshell -p /dev/ttyUSB0 -e nano repl",
+            "dependsOn": ["sync to board"]
+        }
+    ]
+}
