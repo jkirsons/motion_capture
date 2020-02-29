@@ -64,6 +64,9 @@ _PAGE_REGISTER = const(0x07)
 _AXIS_MAP_SIGN = const(0x42)
 _AXIS_MAP_CONFIG = const(0x41)
 
+PROFILE_START = const(0x55)
+PROFILE_END = const(0x6A)
+
 class BNO055(BNO055_BASE):
 
     acc_range = (2, 4, 8, 16)  # G
@@ -115,7 +118,7 @@ class BNO055(BNO055_BASE):
 
     # Transposition (x, y, z) 0 == x 1 == y 2 == z hence (0, 1, 2) is no change
     # Scaling (x, y, z) 0 == normal 1 == invert
-    def __init__(self, i2c=None, address=0x28, crystal=True, transpose=(0, 1, 2), sign=(0, 0, 0), serial=None):
+    def __init__(self, i2c=None, address=0x28, crystal=True, transpose=(0, 1, 2), sign=(0, 0, 0), serial=None, calibration=None):
         self._argcheck(sign, 'Sign')
         if [x for x in sign if x not in (0, 1)]:
             raise ValueError('Sign values must be 0 or 1')
@@ -124,7 +127,7 @@ class BNO055(BNO055_BASE):
         if set(transpose) != {0, 1, 2}:
             raise ValueError('Transpose indices must be unique and in range 0-2')
         self.transpose = transpose
-        super().__init__(i2c=i2c, address=address, crystal=crystal, serial=serial)
+        super().__init__(i2c=i2c, address=address, crystal=crystal, serial=serial, calibration=calibration)
         self.buf6 = bytearray(6)
         self.buf8 = bytearray(8)
         self.w = 0
@@ -156,4 +159,17 @@ class BNO055(BNO055_BASE):
         self._write(_PAGE_REGISTER, 0)
         self.mode(last_mode)
         return self._int_to_tuple(dev, old_val)
+
+    def read_profile(self, value=bytearray(PROFILE_END-PROFILE_START)):
+        last_mode = self.mode(CONFIG_MODE)
+        self._write(_PAGE_REGISTER, 0)
+
+        address = PROFILE_START
+        while address <= PROFILE_END:
+            value[address - PROFILE_START] = self._read(address)
+            address += 1
+
+        self.mode(last_mode)
+        return value
+
 

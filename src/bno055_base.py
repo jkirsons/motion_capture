@@ -39,6 +39,7 @@ _CHIP_ID = const(0xa0)
 
 _CONFIG_MODE = const(0)
 _NDOF_MODE = const(0x0c)
+_NDOF_FMC_OFF_MODE = const(0x0b)
 
 _POWER_NORMAL = const(0x00)
 _POWER_LOW = const(0x01)
@@ -51,10 +52,21 @@ _TRIGGER_REGISTER = const(0x3f)
 _POWER_REGISTER = const(0x3e)
 _ID_REGISTER = const(0x00)
 
+_SYS_CLK_STATUS = const(0x38)
+_SYS_STATUS = const(0x39)
+_SYS_ERR = const(0x3A)
+_SELFTEST_RESULT = const(0x36)
+PROFILE_START = const(0x55)
+PROFILE_END = const(0x6A)
 
 class BNO055_BASE:
 
-    def __init__(self, i2c=None, address=0x28, crystal=True, transpose=(0, 1, 2), sign=(0, 0, 0), serial=None):
+    def status(self):
+        print("sys status: " + str(self._read(_SYS_STATUS)))
+        print("sys err: " + str(self._read(_SYS_ERR)))
+        print("self test: " + str(self._read(_SELFTEST_RESULT)))
+
+    def __init__(self, i2c=None, address=0x28, crystal=True, transpose=(0, 1, 2), sign=(0, 0, 0), serial=None, calibration=None):
         if i2c is not None:
             self._i2c = i2c
         else:
@@ -62,16 +74,14 @@ class BNO055_BASE:
             self._i2c = None
         self.address = address
         self.crystal = crystal
-        self.mag = lambda: self.scaled_tuple(
-            0x0e, 1/16)  # microteslas (x, y, z)
+        self.calibration = calibration
+        self.mag = lambda: self.scaled_tuple(0x0e, 1/16)  # microteslas (x, y, z)
         self.accel = lambda: self.scaled_tuple(0x08, 1/100)  # m.s^-2
         self.lin_acc = lambda: self.scaled_tuple(0x28, 1/100)  # m.s^-2
         self.gravity = lambda: self.scaled_tuple(0x2e, 1/100)  # m.s^-2
         self.gyro = lambda: self.scaled_tuple(0x14, 1/16)  # deg.s^-1
-        self.euler = lambda: self.scaled_tuple(
-            0x1a, 1/16)  # degrees (heading, roll, pitch)
-        self.quaternion = lambda: self.scaled_tuple(
-            0x20, 1/(1 << 14), bytearray(8), '<hhhh')  # (w, x, y, z) - little endian, 4 shorts
+        self.euler = lambda: self.scaled_tuple(0x1a, 1/16)  # degrees (heading, roll, pitch)
+        self.quaternion = lambda: self.scaled_tuple(0x20, 1/(1 << 14), bytearray(8), '<hhhh')  # (w, x, y, z) - little endian, 4 shorts
         try:
             chip_id = self._read(_ID_REGISTER)
         except OSError:
@@ -79,6 +89,7 @@ class BNO055_BASE:
         if chip_id != _CHIP_ID:
             raise RuntimeError("bad chip id (%x != %x)" % (chip_id, _CHIP_ID))
         self.reset()
+
 
     def reset(self):
         self.mode(_CONFIG_MODE)
@@ -90,18 +101,37 @@ class BNO055_BASE:
         time.sleep_ms(700)
         self._write(_POWER_REGISTER, _POWER_NORMAL)
         self._write(_PAGE_REGISTER, 0x00)
+        if self.calibration is not None:
+            self.write_calibration(self.calibration)
         self._write(_TRIGGER_REGISTER, 0x80 if self.crystal else 0)
         # Crystal osc seems to take time to start.
         time.sleep_ms(500 if self.crystal else 10)
         if hasattr(self, 'orient'):
             self.orient()  # Subclass
         self.mode(_NDOF_MODE)
+        time.sleep_ms(50)
+
+    def write_calibration(self, value):
+        if len(value) == 0 or max(value) == 0:
+            print("no calibration data")
+            return
+        time.sleep_ms(25)
+        address = PROFILE_START
+        while address <= PROFILE_END:
+            self._write(address, value[address - PROFILE_START])
+            address += 1
+        print("Wrote calibration:")
+        print(value)
+        time.sleep_ms(10)
 
     def scaled_tuple(self, addr, scale, buf=bytearray(6), fmt='<hhh'):
         return tuple(b*scale for b in ustruct.unpack(fmt, self._readn(buf, addr)))
 
-    def raw_quaternion(self, buff):
+    def raw_quaternion(self):
         return self._readn(bytearray(8), 0x20)
+
+    def raw_gravity(self):
+        return self._readn(bytearray(6), 0x2e)
 
     def scale_tuple(self, scale, buf=bytearray(6), fmt='<hhh'):
         return tuple(b*scale for b in ustruct.unpack(fmt, buf))
