@@ -122,6 +122,13 @@ class sensors:
                         self.reconnect(i, j)
                         continue
 
+    def read_id(self):
+        self.data_list.clear()
+        machine_id = machine.unique_id()
+        self.data[0][0][0] = 9 # Transaction Type
+        self.data[0][0][1:11] = machine_id
+        self.data_list.append(self.data[0][0])
+
     def read_cal(self):
         for j in range(2):
             for i in range(2):

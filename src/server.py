@@ -34,10 +34,19 @@ def run():
     led.value(0)
     frame = 0
 
-    while True:
-        utime.sleep_ms(5)
-        sens.read_data()
+    first = True
 
+    while True:
+        utime.sleep_ms(10)
+
+        # Get the machine id on first loop
+        if first:
+            sens.read_id()
+            first = False
+        else:
+            sens.read_data()
+
+        # Send the data
         try:
             for data in sens.data_list:
                 s.send(data)
@@ -46,11 +55,12 @@ def run():
             if frame > 300:
                 frame = 0
                 sens.check_cal()
-                for data in sens.data_list:
-                    print(data)
+                #for data in sens.data_list:
+                #    print(data)
                 #sens.status()
 
         except OSError:
+            first = True
             s.close()
             s = usocket.socket()
             print("Connecting...", end='')
