@@ -2,6 +2,7 @@
 import os, machine
 import esp
 from bno055 import *
+#import time
 
 class sensors:
     profile_length = const(0x6A - 0x55 + 1)
@@ -16,6 +17,7 @@ class sensors:
     data = [[bytearray(11) for x in range(2)] for y in range(2)]
     found = []
     imus = []
+    connected_imus = 0
 
     def __init__(self, pins):
         self.i2c = []
@@ -59,9 +61,14 @@ class sensors:
         ret = []
         ret.append(1 if 0x28 in bus_list else 0)
         ret.append(1 if 0x29 in bus_list else 0)
+        if 0x28 in bus_list:
+            self.connected_imus += 1
+        if 0x29 in bus_list:
+            self.connected_imus += 1
         return ret
 
     def scan(self):
+        self.connected_imus = 0
         self.found = []
         self.found.append(self.is_found(self.i2c[0].scan()))
         self.found.append(self.is_found(self.i2c[1].scan()))
@@ -101,6 +108,7 @@ class sensors:
                         self.data[i][j][3:11] = self.imus[i][j].raw_quaternion()
                         #self.data[i][j][11:17] = self.imus[i][j].raw_gravity()
                         self.data_list.append(self.data[i][j])
+                        #time.sleep_ms(1)
                     except OSError:
                         print('X ['+str(i)+'],['+str(j)+']', end='')
                         self.reconnect(i, j)

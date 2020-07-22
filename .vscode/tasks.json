@@ -27,7 +27,7 @@
         {
             "label": "flash",
             "type": "shell",
-            "command": "esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash; esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 ~/Downloads/esp32-idf4-20200118-v1.12-68-g3032ae115.bin"
+            "command": "esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash; esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 ~/Downloads/esp32-idf4-20200719-unstable-v1.12-634-gb7698841b.bin"
         }
     ]
 }

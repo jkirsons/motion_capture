@@ -9,5 +9,6 @@
 
     "python.linting.pylintEnabled": true,
     "python.pythonPath": "/usr/bin/python",
+    "python.languageServer": "Microsoft",
     //"python.pythonPath": "/home/jason/Git/micropython/ports/unix/micropython"
 }
