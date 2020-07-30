@@ -18,6 +18,7 @@ class sensors:
     found = []
     imus = []
     connected_imus = 0
+    buffer = bytearray(11)
 
     def __init__(self, pins):
         self.i2c = []
@@ -113,6 +114,11 @@ class sensors:
                         print('X ['+str(i)+'],['+str(j)+']', end='')
                         self.reconnect(i, j)
                         continue
+
+    def set_button(self):
+        self.buffer[0] = 2 # Transaction Type
+        self.buffer[1] = 1
+        self.data_list.append(self.buffer)
 
     def read_grav(self):
         self.data_list.clear()

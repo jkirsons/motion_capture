@@ -7,11 +7,22 @@ import usocket
 from sensors import sensors
 import wifimgr
 
+button_disable = False
+
+def debounce_callback(timer):
+    global button_disable
+    button_disable = False
+
 def run():
+    global button_disable
     machine.freq(160000000)
     print('Machine ID: ' + str(machine.unique_id()))
     print('CPU Speed: ' + str(machine.freq()))
     print("Starting WiFi")
+
+    button = machine.Pin(23, machine.Pin.IN, machine.Pin.PULL_DOWN)
+
+    debounce_timer = machine.Timer(0)
 
     led = machine.Pin(2, machine.Pin.OUT)
     wlan = wifimgr.get_connection(led)
@@ -37,7 +48,7 @@ def run():
     frame = 0
     first = True
     ledStatus = False
-    
+
     s = usocket.socket()
     #s.setsockopt(usocket.SOL_SOCKET, usocket.SO_REUSEADDR, 1)
 
@@ -62,10 +73,16 @@ def run():
         else:
             sens.read_data()
 
+        if button.value() == 1 and not button_disable:
+            sens.set_button()
+            button_disable = True
+            debounce_timer.init(period=500, mode=machine.Timer.ONE_SHOT, callback=debounce_callback)
+
         # Send the data
         try:
             for data in sens.data_list:
                 s.send(data)
+            sens.data_list.clear()
 
             frame += 1
 
